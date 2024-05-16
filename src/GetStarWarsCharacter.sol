@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/FunctionsClient.sol";
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
+import {FunctionsSource} from "./FunctionsSource.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
@@ -32,7 +33,9 @@ contract ChainLinkFunctionsNew is FunctionsClient {
     }
 
     CharacterDetails internal characterDetails;
-    string s_getStarWarsCharacterSource
+
+    //Callback gas limit
+    uint32 gasLimit = 300000;
 
     // Hardcoded for Fuji
     // Supported networks https://docs.chain.link/chainlink-functions/supported-networks
@@ -40,20 +43,16 @@ contract ChainLinkFunctionsNew is FunctionsClient {
     bytes32 donID =
         0x66756e2d6176616c616e6368652d66756a692d31000000000000000000000000;
 
-    //Callback gas limit
-    uint32 gasLimit = 300000;
-
     uint64 subscriptionId;
 
     bytes32 internal s_lastRequestId;
     bytes public s_lastResponse;
     bytes public s_lastError;
 
-    mapping(string characterId => CharacterDetails) public s_characterDetails;
+    mapping(string => CharacterDetails) public s_characterDetails;
 
-    constructor(uint64 functionSubscriptionId, , string memory getStarWarsCharacterSource) FunctionsClient(router) {
+    constructor(uint64 functionSubscriptionId) FunctionsClient(router) {
         subscriptionId = functionSubscriptionId;
-        s_getStarWarsCharacterSource = getStarWarsCharacterSource;
     }
 
     function sendRequest(
@@ -67,19 +66,19 @@ contract ChainLinkFunctionsNew is FunctionsClient {
 
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(
-            s_getStarWarsCharacterSource
+            FunctionsSource.getStarwarsCharacters()
         ); // Initialize the request with JS code
         if (args.length > 0) req.setArgs(args); // Set the arguments for the request
 
         // Send the request and store the request ID
-        requestId = _sendRequest(
+        s_lastRequestId = _sendRequest(
             req.encodeCBOR(),
             subscriptionId,
             gasLimit,
             donID
         );
 
-        // return s_lastRequestId;
+        return s_lastRequestId;
     }
 
     function fulfillRequest(
